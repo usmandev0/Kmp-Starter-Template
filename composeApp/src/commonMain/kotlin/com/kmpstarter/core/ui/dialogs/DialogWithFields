@@ -1,0 +1,228 @@
+package com.kmpstarter.core.ui.dialogs
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.kmpstarter.theme.Dimens
+import kmpstarter.composeapp.generated.resources.Res
+import kmpstarter.composeapp.generated.resources.auth_cancel
+import org.jetbrains.compose.resources.ExperimentalResourceApi
+import org.jetbrains.compose.resources.stringResource
+
+/**
+ * A reusable **dialog with a text input field** — ideal for small, focused user inputs
+ * like renaming, updating limits, entering codes, or confirming numeric values.
+ *
+ * This composable shows a Material 3 dialog that includes:
+ * - A title and optional message
+ * - A single text field (with label, icon, and validation support)
+ * - Cancel and Submit buttons
+ * - Optional loading indicator for asynchronous actions
+ *
+ * ---
+ *
+ * ### 💡 Use Cases
+ * - **1. Input Limit / Threshold:** Ask users to set a numeric or stock limit.
+ * - **2. Rename Item:** Prompt users to rename a product, category, or account.
+ * - **3. Verification / Code Entry:** Collect one-time codes or short text inputs.
+ * - **4. Add Notes / Comments:** Let users quickly add text details to an item.
+ *
+ * ---
+ *
+ * ### 🧩 Example Usage
+ * ```kotlin
+ * var limit by remember { mutableStateOf("") }
+ * var error by remember { mutableStateOf("") }
+ * var loading by remember { mutableStateOf(false) }
+ *
+ * DialogWithFields(
+ *     value = limit,
+ *     onValueChange = {
+ *         limit = it
+ *         // Basic validation
+ *         error = if (it.toDoubleOrNull() == null) "Invalid number" else ""
+ *     },
+ *     dialogTitle = "Set Low Stock Limit",
+ *     dialogMessage = "Specify a minimum stock level before alert triggers.",
+ *     valueLabel = "Low Stock Limit",
+ *     valueError = error,
+ *     onSubmitText = "Save",
+ *     keyboardType = KeyboardType.Number,
+ *     isLoading = loading,
+ *     onSubmit = {
+ *         if (error.isEmpty() && limit.isNotEmpty()) {
+ *             loading = true
+ *             // Call ViewModel or save action
+ *         }
+ *     },
+ *     onDismiss = { /* Close dialog */ }
+ * )
+ * ```
+ *
+ * ---
+ *
+ * @param modifier Modifier for adjusting layout or adding padding.
+ * @param value The current value in the input field.
+ * @param onValueChange Callback when the text field value changes.
+ * @param dialogTitle The main title shown at the top of the dialog.
+ * @param dialogMessage Optional message displayed below the title.
+ * @param valueLabel Label text inside the input field.
+ * @param valueError Error text shown below the field if validation fails.
+ * @param onSubmitText Text displayed on the submit button.
+ * @param keyboardType The keyboard type (e.g. text, number, email).
+ * @param isLoading Whether to show a circular progress indicator on the submit button.
+ * @param dialogIcon Icon displayed at the top of the dialog (default: Info).
+ * @param leadingIcon Icon displayed inside the text field.
+ * @param onSubmit Called when the user submits the input.
+ * @param onDismiss Called when the dialog is dismissed.
+ */
+@OptIn(ExperimentalResourceApi::class)
+@Composable
+fun DialogWithFields(
+    modifier: Modifier = Modifier,
+    value: String,
+    onValueChange: (String) -> Unit,
+    dialogTitle: String = "Dialog",
+    dialogMessage: String = "",
+    valueLabel: String = "Enter value",
+    valueError: String = "",
+    onSubmitText: String = "Submit",
+    keyboardType: KeyboardType = KeyboardType.Text,
+    isLoading: Boolean = false,
+    dialogIcon: ImageVector = Icons.Default.Info,
+    leadingIcon: ImageVector = Icons.Default.Info,
+    onSubmit: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val focusManager = LocalFocusManager.current
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true
+        )
+    ) {
+        Surface(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(Dimens.paddingMedium),
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Dimens.paddingMedium)
+            ) {
+                // Icon
+                Icon(
+                    imageVector = dialogIcon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp)
+                )
+
+                // Title
+                Text(
+                    text = dialogTitle,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                // Optional message
+                if (dialogMessage.isNotEmpty()) {
+                    Text(
+                        text = dialogMessage,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Input Field
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    label = { Text(text = valueLabel) },
+                    leadingIcon = { Icon(leadingIcon, contentDescription = null) },
+                    isError = valueError.isNotEmpty(),
+                    supportingText = if (valueError.isNotEmpty()) {
+                        { Text(valueError) }
+                    } else null,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = keyboardType,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            focusManager.clearFocus()
+                            if (value.isNotEmpty()) onSubmit()
+                        }
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Action Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.paddingSmall)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(Res.string.auth_cancel))
+                    }
+
+                    Button(
+                        onClick = onSubmit,
+                        enabled = value.isNotEmpty() && !isLoading,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        } else {
+                            Text(onSubmitText)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
